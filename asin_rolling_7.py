@@ -22,6 +22,7 @@ for fn in uploaded.keys():
 filename = list(uploaded.keys())[0]
 data = pd.read_csv(filename)
 
+
 ## Styles
 # Define the color formatting function
 def color_scale(val, min_val, val_25, val_75, max_val):
@@ -42,7 +43,7 @@ def apply_color_scale(column):
     max_val = column.max()
     return column.apply(color_scale, args=(min_val, val_25, val_75, max_val))
 
-data = pd.read_csv('lemonco.csv', parse_dates=['formatted_date'])
+
 
 def preprocess(data):
     # Add organic data
