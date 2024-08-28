@@ -22,31 +22,29 @@ for fn in uploaded.keys():
 filename = list(uploaded.keys())[0]
 data = pd.read_csv(filename)
 
+## Styles
+# Define the color formatting function
+def color_scale(val, min_val, val_25, val_75, max_val):
+    if min_val <= val <= val_25:
+        return 'background-color: red'
+    elif val_25 < val <= val_75:
+        return 'background-color: orange'
+    elif val_75 < val <= max_val:
+        return 'background-color: green'
+    else:
+        return ''  # No formatting
+
+# Apply conditional formatting to each column separately
+def apply_color_scale(column):
+    min_val = column.min()
+    val_25 = column.quantile(0.25)
+    val_75 = column.quantile(0.75)
+    max_val = column.max()
+    return column.apply(color_scale, args=(min_val, val_25, val_75, max_val))
+
+data = pd.read_csv('lemonco.csv', parse_dates=['formatted_date'])
 
 def preprocess(data):
-    ## Styles
-    # Define the color formatting function
-    def color_scale(val, min_val, val_25, val_75, max_val):
-        if min_val <= val <= val_25:
-            return 'background-color: red'
-        elif val_25 < val <= val_75:
-            return 'background-color: orange'
-        elif val_75 < val <= max_val:
-            return 'background-color: green'
-        else:
-            return ''  # No formatting
-
-    # Apply conditional formatting to each column separately
-    def apply_color_scale(column):
-        min_val = column.min()
-        val_25 = column.quantile(0.25)
-        val_75 = column.quantile(0.75)
-        max_val = column.max()
-        return column.apply(color_scale, args=(min_val, val_25, val_75, max_val))
-
-    data = pd.read_csv('lemonco.csv', parse_dates=['formatted_date'])
-
-
     # Add organic data
     def add_organic_data(data):
         data = (data
