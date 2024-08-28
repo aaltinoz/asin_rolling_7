@@ -22,58 +22,63 @@ for fn in uploaded.keys():
 filename = list(uploaded.keys())[0]
 data = pd.read_csv(filename)
 
-## Styles
-# Define the color formatting function
-def color_scale(val, min_val, val_25, val_75, max_val):
-    if min_val <= val <= val_25:
-        return 'background-color: red'
-    elif val_25 < val <= val_75:
-        return 'background-color: orange'
-    elif val_75 < val <= max_val:
-        return 'background-color: green'
-    else:
-        return ''  # No formatting
 
-# Apply conditional formatting to each column separately
-def apply_color_scale(column):
-    min_val = column.min()
-    val_25 = column.quantile(0.25)
-    val_75 = column.quantile(0.75)
-    max_val = column.max()
-    return column.apply(color_scale, args=(min_val, val_25, val_75, max_val))
+def preprocess(data):
+    ## Styles
+    # Define the color formatting function
+    def color_scale(val, min_val, val_25, val_75, max_val):
+        if min_val <= val <= val_25:
+            return 'background-color: red'
+        elif val_25 < val <= val_75:
+            return 'background-color: orange'
+        elif val_75 < val <= max_val:
+            return 'background-color: green'
+        else:
+            return ''  # No formatting
 
-data = pd.read_csv('lemonco.csv', parse_dates=['formatted_date'])
+    # Apply conditional formatting to each column separately
+    def apply_color_scale(column):
+        min_val = column.min()
+        val_25 = column.quantile(0.25)
+        val_75 = column.quantile(0.75)
+        max_val = column.max()
+        return column.apply(color_scale, args=(min_val, val_25, val_75, max_val))
+
+    data = pd.read_csv('lemonco.csv', parse_dates=['formatted_date'])
 
 
-# Add organic data
-def add_organic_data(data):
-    data = (data
-                .fillna(0)
-                .rename(columns={'quantity':'total_order',
-                                'sales_amount': 'total_sales'})
-                .assign(organic_order=data['quantity']-data['ad_units_ordered'],
-                        organic_sales=data['sales_amount']-data['ad_sales'],
-                        cvr=data['ad_units_ordered']/data['ad_clicks'])
-                .set_index('formatted_date')
-                .sort_index(ascending=True) # Ensure the data is in descending order
-                
-                )
+    # Add organic data
+    def add_organic_data(data):
+        data = (data
+                    .fillna(0)
+                    .rename(columns={'quantity':'total_order',
+                                    'sales_amount': 'total_sales'})
+                    .assign(organic_order=data['quantity']-data['ad_units_ordered'],
+                            organic_sales=data['sales_amount']-data['ad_sales'],
+                            cvr=data['ad_units_ordered']/data['ad_clicks'])
+                    .set_index('formatted_date')
+                    .sort_index(ascending=True) # Ensure the data is in descending order
+                    
+                    )
+        return data
+
+    data = add_organic_data(data)
+
+    data.index = data.index.strftime('%m-%d-%Y')
+    # Add 7 day rolling
+    def add_7_day_rolling(data):
+            return (data.assign(rolling7adRoas=data['ad_sales'].rolling(window=7).sum()/data['ad_spend'].rolling(window=7).sum(),
+                rolling7grossRoas=data['total_sales'].rolling(window=7).sum()/data['ad_spend'].rolling(window=7).sum(),
+                rolling7adUnits=data['ad_units_ordered'].rolling(window=7).sum(),
+                rolling7organicUnits=data['total_order'].rolling(window=7).sum()-data['ad_units_ordered'].rolling(window=7).sum(),
+                rolling7adSpend=data['ad_spend'].rolling(window=7).sum(),
+                rolling7dayCvr=data['ad_units_ordered'].rolling(window=7).sum()/data['ad_clicks'].rolling(window=7).sum())
+    )
+
+    data = add_7_day_rolling(data)
+    
+    
     return data
-
-data = add_organic_data(data)
-
-data.index = data.index.strftime('%m-%d-%Y')
-# Add 7 day rolling
-def add_7_day_rolling(data):
-        return (data.assign(rolling7adRoas=data['ad_sales'].rolling(window=7).sum()/data['ad_spend'].rolling(window=7).sum(),
-            rolling7grossRoas=data['total_sales'].rolling(window=7).sum()/data['ad_spend'].rolling(window=7).sum(),
-            rolling7adUnits=data['ad_units_ordered'].rolling(window=7).sum(),
-            rolling7organicUnits=data['total_order'].rolling(window=7).sum()-data['ad_units_ordered'].rolling(window=7).sum(),
-            rolling7adSpend=data['ad_spend'].rolling(window=7).sum(),
-            rolling7dayCvr=data['ad_units_ordered'].rolling(window=7).sum()/data['ad_clicks'].rolling(window=7).sum())
-)
-
-data = add_7_day_rolling(data)
 
 # 7 day heatmap
 def heatmap_7(data):
